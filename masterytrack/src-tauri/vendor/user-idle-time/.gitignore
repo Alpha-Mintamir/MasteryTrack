@@ -1,0 +1,38 @@
+# Rust build artifacts
+
+/target
+**/*.rs.bk
+**/*.rs.pending-snap
+
+# Cargo
+
+Cargo.lock
+.cargo/config
+.cargo/config.toml
+
+.vscode/settings.json
+
+# npm
+
+node_modules
+
+# other build artifacts
+
+/dist/
+/out/
+.idea/*
+
+# logs
+*.log
+
+# intellij
+*.iml
+
+# mac thing
+.DS_Store
+
+# https://lsif.dev/
+/dump.lsif
+
+# https://direnv.net/
+.envrc

@@ -312,13 +312,13 @@ fn build_tray(app: AppHandle) -> AppResult<()> {
 
 fn update_tray_tooltip(app: &AppHandle, status: &TimerStatus) {
     use tauri::tray::TrayIconId;
-    if let Ok(tray) = app.tray_handle_by_id(TrayIconId::new(TRAY_ID)) {
+    if let Some(tray) = app.tray_by_id(TrayIconId::new(TRAY_ID)) {
         let tooltip = if status.running {
             let hrs = status.elapsed_seconds as f64 / 3600.0;
             format!("Practicing • {:.2}h today", hrs)
         } else {
             "MasteryTrack — idle".into()
         };
-        tray.set_tooltip(Some(&tooltip)).ok();
+        tray.set_tooltip(Some(tooltip.as_str())).ok();
     }
 }

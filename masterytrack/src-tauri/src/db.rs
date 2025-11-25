@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use chrono::{DateTime, Duration, NaiveDateTime, TimeZone, Utc};
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use sqlx::{Row, SqlitePool};
-use tauri::{api::path::app_data_dir, AppHandle, Manager};
+use tauri::AppHandle;
 
 use crate::errors::{AppError, AppResult};
 use crate::models::{
@@ -12,7 +12,9 @@ use crate::models::{
 };
 
 pub async fn init_pool(app: &AppHandle) -> AppResult<(SqlitePool, PathBuf)> {
-    let data_dir = app_data_dir(app.config())
+    let data_dir = app
+        .path()
+        .app_data_dir()
         .ok_or_else(|| AppError::Custom("Unable to resolve app data directory".into()))?;
     tokio::fs::create_dir_all(&data_dir).await?;
     let db_path = data_dir.join("masterytrack.db");
@@ -240,14 +242,14 @@ async fn sum_minutes_since(pool: &SqlitePool, start: NaiveDateTime) -> AppResult
         .bind(Utc.from_utc_datetime(&start).to_rfc3339())
         .fetch_one(pool)
         .await?;
-    Ok(total.unwrap_or(0.0))
+    Ok(total)
 }
 
 async fn sum_all_minutes(pool: &SqlitePool) -> AppResult<f64> {
     let total: f64 = sqlx::query_scalar::<_, f64>("SELECT COALESCE(SUM(duration_minutes), 0) FROM sessions")
         .fetch_one(pool)
         .await?;
-    Ok(total.unwrap_or(0.0))
+    Ok(total)
 }
 
 async fn compute_streak(pool: &SqlitePool, goal_minutes: i64) -> AppResult<u32> {

@@ -1,0 +1,88 @@
+[package]
+name = "user-idle-time"
+version = "0.7.0"
+edition = "2024"
+description = "Get a user's idle time."
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/BenjaminBrienen/user-idle-time"
+repository = "https://github.com/BenjaminBrienen/user-idle-time"
+readme = "README.md"
+keywords = ["idle", "user", "afk"]
+rust-version = "1.85.1"
+categories = ["date-and-time"]
+resolver = "2"
+
+[badges]
+circle-ci = { repository = "BenjaminBrienen/user-idle-time", branch = "main" }
+
+[package.metadata.docs.rs]
+all-features = false
+
+[features]
+default = ["x11"]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+x11 = { version = "2.21.0", features = ["xlib", "xss"], optional = true }
+dbus = { version = "0.9.7", optional = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.59.0", features = [
+  "Win32_Foundation",
+  "Win32_System_SystemInformation",
+  "Win32_UI_Input_KeyboardAndMouse",
+] }
+
+# MacOS impl is broken
+# [target.'cfg(target_os = "macos")'.dependencies]
+# apple-sys = { version = "0.2.0", features = ["CoreFoundation", "IOKit"] }
+# mach2 = "0.4.2"
+# cstr = "0.2.12"
+
+[lints.rust]
+warnings = { level = "warn", priority = -2 }
+deprecated-safe = { level = "deny", priority = -1 }
+future-incompatible = { level = "deny", priority = -1 }
+keyword-idents = { level = "deny", priority = -1 }
+let-underscore = { level = "deny", priority = -1 }
+nonstandard-style = { level = "deny", priority = -1 }
+refining-impl-trait = { level = "deny", priority = -1 }
+rust-2018-compatibility = { level = "deny", priority = -1 }
+rust-2018-idioms = { level = "deny", priority = -1 }
+rust-2021-compatibility = { level = "deny", priority = -1 }
+rust-2024-compatibility = { level = "deny", priority = -1 }
+# TODO still prototyping
+unused = { level = "allow", priority = 1 }
+
+[lints.clippy]
+cargo = { level = "warn", priority = -2 }
+complexity = { level = "warn", priority = -2 }
+correctness = { level = "deny", priority = -1 }
+nursery = { level = "warn", priority = -2 }
+pedantic = { level = "warn", priority = -2 }
+perf = { level = "warn", priority = -2 }
+restriction = { level = "warn", priority = -2 }
+style = { level = "warn", priority = -2 }
+suspicious = { level = "warn", priority = -2 }
+
+single_call_fn = "allow"                   # good for organization
+implicit_return = "allow"                  # unidiomatic
+question_mark_used = "allow"               # unidiomatic
+shadow_reuse = "allow"                     # often useful
+pub_use = "allow"                          # often useful
+std_instead_of_alloc = "allow"             # no no_std support
+std_instead_of_core = "allow"              # no no_std support
+blanket_clippy_restriction_lints = "allow" # makes it easier to keep up to date with new lints
+pub_with_shorthand = "allow"               # style preference
+absolute_paths = "allow"                   # often hurts readability
+items_after_statements = "allow"           # incorrect
+shadow_unrelated = "allow"                 # do not care
+missing_trait_methods = "allow"            # antipattern
+float_arithmetic = "allow"                 # is fine
+separated_literal_suffix = "allow"         # style preference
+self_named_module_files = "allow"          # style preference
+semicolon_outside_block = "allow"          # style preference
+else_if_without_else = "allow"             # conflicting with redundant_else
+arbitrary_source_item_ordering = "allow"   # does not work with `mod test`s
+
+[dependencies]
+anyhow = "1.0.97"
