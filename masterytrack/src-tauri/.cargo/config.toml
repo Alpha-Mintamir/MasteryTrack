@@ -1,0 +1,19 @@
+[build]
+# Limit parallel jobs to reduce memory usage and prevent hangs
+jobs = 1
+
+# Use less aggressive optimization during development
+[profile.dev]
+opt-level = 0
+debug = true
+incremental = true
+# Reduce codegen units to prevent memory issues
+codegen-units = 1
+
+# Reduce codegen units for faster compilation (slightly larger binaries)
+[profile.release]
+codegen-units = 1
+
+[net]
+# Retry configuration for network issues
+retry = 3
