@@ -1,0 +1,276 @@
+.app-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.tabs {
+  display: inline-flex;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+  gap: 0.5rem;
+  align-self: center;
+}
+
+.tabs button {
+  background: transparent;
+  color: var(--muted);
+  padding: 0.45rem 1.4rem;
+  border-radius: 20px;
+}
+
+.tabs button.active {
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: 1.75rem;
+  box-shadow: 0 20px 60px rgba(5, 7, 15, 0.45);
+}
+
+.timer-card {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.timer-display {
+  text-align: center;
+}
+
+.timer-value {
+  font-size: clamp(2.5rem, 4vw, 3.6rem);
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.timer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.timer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.85rem 1.5rem;
+  font-weight: 600;
+}
+
+.timer-btn.start {
+  background: var(--success);
+  color: #02140c;
+}
+
+.timer-btn.stop {
+  background: #ff8c73;
+  color: #140903;
+}
+
+.dashboard-grid .metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.metric {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 18px;
+  padding: 1rem;
+  border: 1px solid var(--border);
+}
+
+.metric strong {
+  font-size: 1.4rem;
+}
+
+.progress-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.progress-circle {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.progress-circle .progress-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+th,
+td {
+  padding: 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: left;
+}
+
+.notes-cell {
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actions button {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.35rem;
+}
+
+.settings-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+}
+
+.settings-card input,
+.settings-card textarea {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.grid.two {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.grid.three {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+}
+
+.primary {
+  background: var(--accent);
+  color: white;
+  padding: 0.8rem 1.5rem;
+  font-weight: 600;
+}
+
+.ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  padding: 0.65rem 1.3rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 7, 15, 0.7);
+  display: grid;
+  place-items: center;
+  z-index: 40;
+}
+
+.modal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 2rem;
+  border-radius: 24px;
+  width: min(600px, 90vw);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: rgba(8, 10, 20, 0.9);
+  color: white;
+  padding: 0.9rem 1.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 768px) {
+  .timer-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
