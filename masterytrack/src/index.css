@@ -1,0 +1,58 @@
+:root {
+  --bg: #05070f;
+  --surface: #0f1424;
+  --surface-alt: #151b2f;
+  --text: #f5f7ff;
+  --text-muted: #9aa4c3;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --accent: #5ad1ff;
+  --accent-strong: #4cb0f5;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  font-family: 'Inter', 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+:root[data-theme='light'] {
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --surface-alt: #eef1fb;
+  --text: #111322;
+  --text-muted: #535a74;
+  --border: rgba(15, 23, 42, 0.08);
+  --border-subtle: rgba(15, 23, 42, 0.12);
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font: inherit;
+}

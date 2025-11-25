@@ -1,145 +1,19 @@
-mod db;
-mod timer;
-mod idle;
-mod tray;
+pub mod db;
+pub mod app_state;
+pub mod commands;
 
-use db::{Database, Session, Settings, DashboardStats};
-use timer::{Timer, TimerInfo};
-use std::sync::Arc;
-use tauri::{AppHandle, Manager, State, Emitter};
-use std::path::PathBuf;
+use tauri::{Manager, Emitter};
+use std::thread;
+use std::time::Duration;
+use user_idle::UserIdle;
+use app_state::{AppState, TimerState};
+use std::sync::Mutex;
+use chrono::Utc;
 
-pub struct AppState {
-    pub db: Arc<Database>,
-    pub timer: Arc<Timer>,
-}
-
-// Timer Commands
+// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
-async fn start_timer(state: State<'_, AppState>) -> Result<i64, String> {
-    let skill = state.db.get_default_skill().map_err(|e| e.to_string())?;
-    let session_id = state.db.start_session(skill.id).map_err(|e| e.to_string())?;
-    state.timer.start(session_id).await;
-    Ok(session_id)
-}
-
-#[tauri::command]
-async fn stop_timer(state: State<'_, AppState>, reflection: Option<String>) -> Result<(), String> {
-    if let Some(session_id) = state.timer.stop().await {
-        state.db.end_session(session_id, reflection).map_err(|e| e.to_string())?;
-    }
-    Ok(())
-}
-
-#[tauri::command]
-async fn pause_timer(state: State<'_, AppState>) -> Result<(), String> {
-    state.timer.pause().await;
-    Ok(())
-}
-
-#[tauri::command]
-async fn resume_timer(state: State<'_, AppState>) -> Result<(), String> {
-    state.timer.resume().await;
-    Ok(())
-}
-
-#[tauri::command]
-async fn get_timer_info(state: State<'_, AppState>) -> Result<TimerInfo, String> {
-    Ok(state.timer.get_info().await)
-}
-
-// Session Commands
-#[tauri::command]
-async fn get_sessions(state: State<'_, AppState>) -> Result<Vec<Session>, String> {
-    state.db.get_all_sessions().map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn update_session(
-    state: State<'_, AppState>,
-    id: i64,
-    start_time: String,
-    end_time: String,
-    reflection: Option<String>,
-) -> Result<(), String> {
-    state.db.update_session(id, start_time, end_time, reflection)
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn delete_session(state: State<'_, AppState>, id: i64) -> Result<(), String> {
-    state.db.delete_session(id).map_err(|e| e.to_string())
-}
-
-// Dashboard Commands
-#[tauri::command]
-async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<DashboardStats, String> {
-    state.db.get_dashboard_stats().map_err(|e| e.to_string())
-}
-
-// Settings Commands
-#[tauri::command]
-async fn get_settings(state: State<'_, AppState>) -> Result<Settings, String> {
-    state.db.get_settings().map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn update_settings(state: State<'_, AppState>, settings: Settings) -> Result<(), String> {
-    state.db.update_settings(settings).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn update_skill_name(state: State<'_, AppState>, name: String) -> Result<(), String> {
-    let skill = state.db.get_default_skill().map_err(|e| e.to_string())?;
-    state.db.update_skill_name(skill.id, name).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn get_skill_name(state: State<'_, AppState>) -> Result<String, String> {
-    let skill = state.db.get_default_skill().map_err(|e| e.to_string())?;
-    Ok(skill.skill_name)
-}
-
-// Export Commands
-#[tauri::command]
-async fn export_csv(state: State<'_, AppState>) -> Result<String, String> {
-    state.db.export_sessions_csv().map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn export_json(state: State<'_, AppState>) -> Result<String, String> {
-    state.db.export_sessions_json().map_err(|e| e.to_string())
-}
-
-// Background timer tick
-async fn timer_tick_loop(app_handle: AppHandle) {
-    let state = app_handle.state::<AppState>();
-    let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
-    
-    loop {
-        interval.tick().await;
-        
-        if state.timer.is_running().await {
-            state.timer.tick().await;
-            
-            // Check for idle
-            let settings = match state.db.get_settings() {
-                Ok(s) => s,
-                Err(_) => continue,
-            };
-            
-            let idle_threshold_secs = settings.idle_timeout_minutes * 60;
-            if state.timer.check_idle(idle_threshold_secs as u64).await {
-                state.timer.pause().await;
-                let _ = app_handle.emit("timer-paused-idle", ());
-            }
-            
-            // Emit timer update
-            if let Ok(info) = state.timer.get_info().await {
-                let _ = app_handle.emit("timer-tick", info);
-            }
-        }
-    }
+fn greet(name: &str) -> String {
+    format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -147,44 +21,78 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            // Initialize database
+            // Initialize DB
             let app_dir = app.path().app_data_dir().expect("failed to get app data dir");
             std::fs::create_dir_all(&app_dir).expect("failed to create app data dir");
             let db_path = app_dir.join("mastery_tracker.db");
             
-            let db = Arc::new(Database::new(db_path).expect("failed to initialize database"));
-            let timer = Arc::new(Timer::new());
+            let conn = db::init_db(&db_path).expect("failed to init db");
             
-            let state = AppState { db, timer };
-            app.manage(state);
-            
-            // Create system tray
-            tray::create_tray(&app.handle()).expect("failed to create tray icon");
-            
-            // Start timer tick loop
-            let app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                timer_tick_loop(app_handle).await;
+            app.manage(AppState {
+                db: Mutex::new(conn),
+                timer_state: Mutex::new(TimerState {
+                    start_time: None,
+                    accumulated_seconds: 0,
+                    is_running: false,
+                    last_tick: None,
+                }),
             });
-            
+
+            // Idle detection background thread
+            let handle_clone = app.handle().clone();
+            std::thread::spawn(move || {
+                loop {
+                    thread::sleep(Duration::from_secs(5));
+                    
+                    if let Some(state) = handle_clone.try_state::<AppState>() {
+                         // Check idle
+                         match UserIdle::get_time() {
+                             Ok(idle_time) => {
+                                 // Check settings
+                                 let idle_timeout_secs = {
+                                     let conn = state.db.lock().unwrap();
+                                     let mut stmt = conn.prepare("SELECT idle_timeout_minutes FROM settings WHERE id = 1").unwrap();
+                                     let minutes: i64 = stmt.query_row([], |row| row.get(0)).unwrap_or(5);
+                                     minutes * 60
+                                 };
+
+                                 // Use as_seconds() or as_secs() depending on return type.
+                                 if idle_time.as_seconds() as i64 > idle_timeout_secs {
+                                     let mut timer = state.timer_state.lock().unwrap();
+                                     if timer.is_running {
+                                         if let Some(start) = timer.start_time {
+                                             let now = Utc::now();
+                                             let elapsed = now.signed_duration_since(start).num_seconds();
+                                             timer.accumulated_seconds += elapsed;
+                                             timer.start_time = None;
+                                             timer.is_running = false;
+                                             
+                                             // Emit event
+                                             let _ = handle_clone.emit("timer-paused", "Idle detected");
+                                         }
+                                     }
+                                 }
+                             },
+                             Err(_) => {}
+                         }
+                    }
+                }
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            start_timer,
-            stop_timer,
-            pause_timer,
-            resume_timer,
-            get_timer_info,
-            get_sessions,
-            update_session,
-            delete_session,
-            get_dashboard_stats,
-            get_settings,
-            update_settings,
-            update_skill_name,
-            get_skill_name,
-            export_csv,
-            export_json,
+            greet,
+            commands::start_timer,
+            commands::stop_timer,
+            commands::get_timer_status,
+            commands::get_dashboard_stats,
+            commands::get_sessions,
+            commands::save_settings,
+            commands::get_settings,
+            commands::log_session,
+            commands::delete_session,
+            commands::update_session_reflection
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
