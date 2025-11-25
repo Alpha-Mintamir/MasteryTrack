@@ -1,0 +1,369 @@
+.app-shell {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, rgba(90, 209, 255, 0.08), transparent 55%),
+    var(--bg);
+  color: var(--text);
+  padding: 2.5rem clamp(1.5rem, 4vw, 3.5rem) 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.top-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.top-bar h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+}
+
+.top-bar-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.tabs {
+  display: inline-flex;
+  background: var(--surface-alt);
+  border-radius: 999px;
+  padding: 0.25rem;
+  width: fit-content;
+}
+
+.tabs button {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.tabs button.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.banner--success {
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.12);
+}
+
+.banner--warning {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+main {
+  flex: 1;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  padding: 1.75rem;
+  box-shadow: 0px 15px 40px rgba(0, 0, 0, 0.25);
+}
+
+.timer-card {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: linear-gradient(135deg, rgba(90, 209, 255, 0.12), rgba(0, 0, 0, 0.4)),
+    var(--surface);
+}
+
+.timer-display {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  margin: 0.5rem 0;
+}
+
+.timer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.timer-meta {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.progress-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.progress-flex {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.progress-meta {
+  display: grid;
+  gap: 1rem;
+}
+
+.stats-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.stats-tiles article {
+  padding: 1rem;
+  border-radius: 1rem;
+  background: var(--surface-alt);
+  border: 1px dashed var(--border);
+}
+
+.history-card header,
+.settings-card header {
+  margin-bottom: 1rem;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.reflection-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-panel {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.grid.two {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.grid.three {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+input,
+textarea {
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  padding: 0.65rem 0.85rem;
+  background: var(--surface-alt);
+  color: var(--text);
+  font: inherit;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.actions-row,
+.export-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.banner button,
+button {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 0.65rem 1.4rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+button.primary {
+  background: var(--accent);
+  color: #021524;
+  font-weight: 600;
+}
+
+button.primary.large {
+  padding: 0.9rem 2.5rem;
+  font-size: 1rem;
+}
+
+button.ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.tiny {
+  font-size: 0.8rem;
+}
+
+.strong {
+  font-weight: 600;
+}
+
+.history-card .muted.tiny {
+  display: block;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: grid;
+  place-items: center;
+  z-index: 10;
+  padding: 1.5rem;
+}
+
+.modal {
+  width: min(480px, 100%);
+  background: var(--surface);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toggle-row input[type='checkbox'] {
+  width: 48px;
+  height: 24px;
+  border-radius: 999px;
+  appearance: none;
+  background: var(--border-subtle);
+  position: relative;
+  cursor: pointer;
+}
+
+.toggle-row input[type='checkbox']::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  transition: transform 0.2s ease;
+}
+
+.toggle-row input[type='checkbox']:checked {
+  background: var(--accent);
+}
+
+.toggle-row input[type='checkbox']:checked::after {
+  transform: translateX(20px);
+}
+
+.truncate {
+  max-width: 320px;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .timer-card {
+    grid-column: span 1;
+  }
+
+  .timer-meta {
+    flex-direction: column;
+  }
+
+  .top-bar {
+    flex-direction: column;
+  }
+}
