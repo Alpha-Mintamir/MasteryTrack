@@ -18,6 +18,7 @@ use models::{
 };
 use tauri::{
     async_runtime,
+    Emitter,
     Manager,
     State,
     AppHandle,
@@ -186,7 +187,7 @@ pub fn run() {
             }
 
             async_runtime::block_on(async {
-                let (pool, db_path) = init_pool(app).await?;
+                let (pool, db_path) = init_pool(app.handle()).await?;
                 let settings = ensure_settings(&pool).await?;
                 let shared_settings = Arc::new(RwLock::new(settings.clone()));
                 let timer = TimerService::new(pool.clone(), shared_settings.clone(), db_path.clone());
@@ -198,11 +199,11 @@ pub fn run() {
                     db_path.clone(),
                 ));
 
-                spawn_background_workers(app.handle(), timer.clone());
+                spawn_background_workers(app.handle().clone(), timer.clone());
                 Ok::<(), AppError>(())
             })?;
 
-            build_tray(app.handle())?;
+            build_tray(app.handle().clone())?;
 
             Ok(())
         })
@@ -237,7 +238,8 @@ fn spawn_background_workers(handle: AppHandle, timer: TimerService) {
 const TRAY_ID: &str = "masterytrack-tray";
 
 fn build_tray(app: AppHandle) -> AppResult<()> {
-    use tauri::tray::{MenuBuilder, MenuItemBuilder, TrayIconBuilder, TrayIconId};
+    use tauri::menu::{MenuBuilder, MenuItemBuilder};
+    use tauri::tray::TrayIconBuilder;
 
     let open = MenuItemBuilder::with_id("show", "Open Dashboard").build(&app)?;
     let start = MenuItemBuilder::with_id("start", "Start Practice").build(&app)?;
