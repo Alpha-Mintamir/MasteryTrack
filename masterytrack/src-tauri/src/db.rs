@@ -1,9 +1,9 @@
 use std::path::{Path, PathBuf};
 
-use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, Duration, NaiveDateTime, TimeZone, Utc};
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use sqlx::{Row, SqlitePool};
-use tauri::AppHandle;
+use tauri::{api::path::app_data_dir, AppHandle, Manager};
 
 use crate::errors::{AppError, AppResult};
 use crate::models::{
@@ -12,9 +12,7 @@ use crate::models::{
 };
 
 pub async fn init_pool(app: &AppHandle) -> AppResult<(SqlitePool, PathBuf)> {
-    let data_dir = app
-        .path_resolver()
-        .app_data_dir()
+    let data_dir = app_data_dir(app.config())
         .ok_or_else(|| AppError::Custom("Unable to resolve app data directory".into()))?;
     tokio::fs::create_dir_all(&data_dir).await?;
     let db_path = data_dir.join("masterytrack.db");
@@ -238,7 +236,7 @@ async fn sum_minutes_since(pool: &SqlitePool, start: NaiveDateTime) -> AppResult
         FROM sessions
         WHERE start_time >= ?1
     "#;
-    let total: f64 = sqlx::query_scalar(query)
+    let total: f64 = sqlx::query_scalar::<_, f64>(query)
         .bind(Utc.from_utc_datetime(&start).to_rfc3339())
         .fetch_one(pool)
         .await?
@@ -247,7 +245,7 @@ async fn sum_minutes_since(pool: &SqlitePool, start: NaiveDateTime) -> AppResult
 }
 
 async fn sum_all_minutes(pool: &SqlitePool) -> AppResult<f64> {
-    let total: f64 = sqlx::query_scalar("SELECT COALESCE(SUM(duration_minutes), 0) FROM sessions")
+    let total: f64 = sqlx::query_scalar::<_, f64>("SELECT COALESCE(SUM(duration_minutes), 0) FROM sessions")
         .fetch_one(pool)
         .await?
         .unwrap_or(0.0);

@@ -4,7 +4,8 @@ use std::time::Duration;
 
 use chrono::Utc;
 use tokio::sync::{Mutex, RwLock};
-use sysinfo::{ProcessExt, System, SystemExt};
+use sysinfo::System;
+use tauri::Emitter;
 
 use crate::db;
 use crate::errors::{AppError, AppResult};
@@ -173,7 +174,7 @@ pub async fn productivity_monitor(
             let mut allowed_match = settings.allowed_apps.is_empty();
             let mut blocked_hit = false;
 
-            let mut sys = System::new_all();
+            let mut sys = System::new();
             sys.refresh_processes();
 
             for process in sys.processes().values() {
