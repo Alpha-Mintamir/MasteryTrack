@@ -1,0 +1,350 @@
+name: Continuous integration
+
+on:
+  pull_request:
+  merge_group:
+
+env:
+  CARGO_TERM_COLOR: always
+  # If nightly is breaking CI, modify this variable to target a specific nightly version.
+  NIGHTLY_TOOLCHAIN: nightly
+
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: ${{github.event_name == 'pull_request'}}
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [
+            windows-latest,
+            ubuntu-latest,
+            # MacOS impl is broken
+            # macos-latest,
+          ]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-build-stable-${{ hashFiles('**/Cargo.toml') }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-dependencies
+      - name: Build & run tests
+        run: cargo build --workspace --lib --bins --tests --benches
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: "-C debuginfo=0 -D warnings"
+
+  test:
+    strategy:
+      matrix:
+        os: [
+            windows-latest,
+            # CI does not have a display
+            # ubuntu-latest,
+            # MacOS impl is broken
+            # macos-latest,
+          ]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-build-stable-${{ hashFiles('**/Cargo.toml') }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-dependencies
+      - name: Build & run tests
+        run: cargo test --workspace --lib --bins --tests --benches
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: "-C debuginfo=0 -D warnings"
+
+  lint:
+    strategy:
+      matrix:
+        os: [
+            windows-latest,
+            ubuntu-latest,
+            # MacOS impl is broken
+            # macos-latest,
+          ]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-ci-${{ hashFiles('**/Cargo.toml') }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-dependencies
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -Dwarnings
+
+  # Miri does not support the necessary operations
+  # miri:
+  #   strategy:
+  #     matrix:
+  #       os: [
+  #           windows-latest,
+  #           ubuntu-latest,
+  #           macos-latest
+  #         ]
+  #   runs-on: ${{ matrix.os }}
+  #   timeout-minutes: 60
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/cache@v4
+  #       with:
+  #         path: |
+  #           ~/.cargo/bin/
+  #           ~/.cargo/registry/index/
+  #           ~/.cargo/registry/cache/
+  #           ~/.cargo/git/db/
+  #           target/
+  #         key: ${{ runner.os }}-cargo-miri-${{ hashFiles('**/Cargo.toml') }}
+  #     - uses: dtolnay/rust-toolchain@master
+  #       with:
+  #         toolchain: ${{ env.NIGHTLY_TOOLCHAIN }}
+  #         components: miri
+  #     - name: Install Linux dependencies
+  #       uses: ./.github/actions/install-linux-dependencies
+  #     - name: CI job
+  #       run: cargo miri test
+  #       env:
+  #         RUSTFLAGS: -Zrandomize-layout
+
+  check-compiles:
+    strategy:
+      matrix:
+        os: [
+            windows-latest,
+            ubuntu-latest,
+            # MacOS impl is broken
+            # macos-latest,
+          ]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-check-compiles-${{ hashFiles('**/Cargo.toml') }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-dependencies
+      - name: Check Compile
+        run: |
+          cargo check --target-dir ../../../target
+          # cargo check --benches --target-dir ../target --manifest-path ./benches/Cargo.toml
+          cargo check --workspace --examples
+          cargo check --workspace
+          cargo check --workspace --tests
+
+  check-compiles-dbus:
+    strategy:
+      matrix:
+        os: [
+            windows-latest,
+            ubuntu-latest,
+            # MacOS impl is broken
+            # macos-latest,
+          ]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-check-compiles-no-default-${{ hashFiles('**/Cargo.toml') }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-none
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-dependencies
+      - name: Check Compile
+        run: cargo check --no-default-features --features dbus
+
+  markdownlint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
+      - name: Run Markdown Lint
+        uses: docker://ghcr.io/github/super-linter:slim-v4
+        env:
+          MULTI_STATUS: false
+          VALIDATE_ALL_CODEBASE: false
+          VALIDATE_MARKDOWN: true
+          DEFAULT_BRANCH: main
+
+  toml:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install taplo
+        run: cargo install taplo-cli --locked
+      - name: Run Taplo
+        id: taplo
+        run: taplo fmt --check --diff
+      - name: Taplo info
+        if: failure()
+        run: |
+          echo 'To fix toml fmt, please run `taplo fmt`.'
+          echo 'To check for a diff, run `taplo fmt --check --diff`.'
+          echo 'You can find taplo here: https://taplo.tamasfe.dev/.'
+          echo 'Also use the `Even Better Toml` extension.'
+          echo 'You can find the extension here: https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml'
+
+  typos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for typos
+        uses: crate-ci/typos@v1.30.2
+      - name: Typos info
+        if: failure()
+        run: |
+          echo 'To fix typos, please run `typos -w`'
+          echo 'To check for a diff, run `typos`'
+          echo 'You can find typos here: https://crates.io/crates/typos'
+          echo 'if you use VS Code, you can also install `Typos Spell Checker'
+          echo 'You can find the extension here: https://marketplace.visualstudio.com/items?itemName=tekumara.typos-vscode'
+
+  check-doc:
+    strategy:
+      matrix:
+        os: [
+            windows-latest,
+            ubuntu-latest,
+            # MacOS impl is broken
+            # macos-latest,
+          ]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-check-doc-${{ hashFiles('**/Cargo.toml') }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.NIGHTLY_TOOLCHAIN }}
+      - name: Install dependencies on Linux
+        if: runner.os == 'Linux'
+        run: sudo add-apt-repository universe && sudo add-apt-repository universe && sudo apt-get update && sudo apt-get install -y libx11-dev libxss-dev libdbus-1-dev pkg-config
+      - name: Build doc
+        run: cargo doc --workspace --all-features --no-deps --document-private-items --keep-going
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: "-C debuginfo=0 --cfg docsrs_dep"
+      - name: Test doc
+        if: runner.os != 'Linux' # Disable this step on Linux
+        run: cargo test --workspace --doc
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: "-C debuginfo=0 --cfg docsrs_dep"
+      - name: Installs cargo-deadlinks
+        run: cargo install --force cargo-deadlinks
+      - name: Check dead links
+        run: cargo deadlinks --check-http
+        continue-on-error: true
+
+  check-unused-dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+
+      - name: Install nightly toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.NIGHTLY_TOOLCHAIN }}
+
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-dependencies
+
+      - name: Check if cargo-udeps is installed
+        id: cargo-udeps-check
+        run: |
+          if command -v cargo-udeps &> /dev/null; then
+            echo "cache-hit=true" >> $GITHUB_ENV
+          else
+            echo "cache-hit=false" >> $GITHUB_ENV
+          fi
+
+      - name: Install cargo-udeps (if not cached)
+        if: env.cache-hit == 'false'
+        run: cargo install --locked cargo-udeps
+
+      - name: Run cargo udeps
+        run: cargo udeps

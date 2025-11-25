@@ -1,0 +1,50 @@
+# This action installs a few dependencies necessary to build on Linux.
+#
+# ```yaml
+# - uses: ./.github/actions/install-linux-dependencies
+#   with:
+#     x11: true
+#     xss: true
+#     dbus: true
+#     pkgconfig: true
+# ```
+#
+# See the `inputs` section for all options and their defaults.
+# Note that you must checkout the repository before you can use this action.
+#
+# This action will only install dependencies when the current operating system is Linux.
+# It will do nothing on any other OS (macOS, Windows).
+
+name: Install Linux dependencies
+description: Installs the dependencies necessary to build on Linux.
+inputs:
+  x11:
+    description: Install X11 (libx11-dev)
+    required: false
+    default: "true"
+  xss:
+    description: Install XSS (libxss-dev)
+    required: false
+    default: "true"
+  dbus:
+    description: Install D-Bus (libdbus-1-dev)
+    required: false
+    default: "true"
+  pkgconfig:
+    description: Install pkg-config
+    required: false
+    default: "true"
+runs:
+  using: composite
+  steps:
+    - name: Install Linux dependencies
+      shell: bash
+      if: ${{ runner.os == 'linux' }}
+      run: >
+        sudo apt-get update
+
+        sudo apt-get install --no-install-recommends
+        ${{ fromJSON(inputs.x11) && 'libx11-dev' || '' }}
+        ${{ fromJSON(inputs.xss) && 'libxss-dev' || '' }}
+        ${{ fromJSON(inputs.dbus) && 'libdbus-1-dev' || '' }}
+        ${{ fromJSON(inputs.pkgconfig) && 'pkg-config' || '' }}
