@@ -31,7 +31,7 @@ pub fn get_idle_time() -> Result<Duration> {
 }
 
 #[link(name = "CoreGraphics", kind = "framework")]
-extern "C" {
+unsafe extern "C" {
     fn CGEventSourceSecondsSinceLastEventType(
         source_state: i32,
         event_type: u32,
