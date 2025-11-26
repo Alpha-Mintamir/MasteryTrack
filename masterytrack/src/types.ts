@@ -51,11 +51,25 @@ export interface AppSettings {
   allowed_apps: string[]
   blocked_apps: string[]
   auto_backup_path?: string | null
+  screenshot_enabled: boolean
+  screenshot_storage_path?: string | null
+  screenshot_retention_days: number
+  music_enabled: boolean
+  music_playlist_type: string
+  music_volume: number
+  music_auto_play: boolean
+  music_custom_playlist_url?: string | null
 }
 
 export interface ExportRequest {
   format: 'csv' | 'json'
   target_dir?: string
+  include_settings?: boolean
+}
+
+export interface ImportRequest {
+  file_path: string
+  import_settings?: boolean
 }
 
 export interface GoalNotification {

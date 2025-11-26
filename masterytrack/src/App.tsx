@@ -7,11 +7,15 @@ import { HistoryTable } from './components/HistoryTable'
 import { SettingsPanel } from './components/SettingsPanel'
 import { ReflectionModal } from './components/ReflectionModal'
 import { Banner } from './components/Banner'
+import { MusicPlayer } from './components/MusicPlayer'
+import { AboutPage } from './components/AboutPage'
+import { SplashScreen } from './components/SplashScreen'
+import { ScreenshotGallery } from './components/ScreenshotGallery'
 import { useTrackerStore } from './store'
 import type { SessionHistoryRow, TimerStatus } from './types'
 import './App.css'
 
-type Tab = 'dashboard' | 'history' | 'settings'
+type Tab = 'dashboard' | 'history' | 'settings' | 'about'
 
 function App() {
   const timer = useTrackerStore((s) => s.timer)
@@ -21,6 +25,7 @@ function App() {
   const reflectionDraft = useTrackerStore((s) => s.reflectionDraft)
   const reflectionOpen = useTrackerStore((s) => s.reflectionOpen)
   const exporting = useTrackerStore((s) => s.exporting)
+  const importing = useTrackerStore((s) => s.importing)
   const lastExportPath = useTrackerStore((s) => s.lastExportPath)
 
   const startTimer = useTrackerStore((s) => s.startTimer)
@@ -30,6 +35,7 @@ function App() {
   const refreshStats = useTrackerStore((s) => s.refreshStats)
   const saveSettings = useTrackerStore((s) => s.saveSettings)
   const exportData = useTrackerStore((s) => s.exportData)
+  const importData = useTrackerStore((s) => s.importData)
   const setReflectionOpen = useTrackerStore((s) => s.setReflectionOpen)
   const updateReflectionDraft = useTrackerStore((s) => s.updateReflectionDraft)
   const setTimerState = useTrackerStore((s) => s.setTimer)
@@ -39,6 +45,7 @@ function App() {
   const [busy, setBusy] = useState(false)
   const [banner, setBanner] = useState<{ message: string; tone?: 'info' | 'success' | 'warning' } | null>(null)
   const [reflectionSaving, setReflectionSaving] = useState(false)
+  const [galleryOpen, setGalleryOpen] = useState(false)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -192,6 +199,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      <SplashScreen />
       <header className="top-bar">
         <div>
           <h1>10,000-Hour Mastery Tracker</h1>
@@ -205,7 +213,7 @@ function App() {
       </header>
 
       <nav className="tabs">
-        {(['dashboard', 'history', 'settings'] as Tab[]).map((key) => (
+        {(['dashboard', 'history', 'settings', 'about'] as Tab[]).map((key) => (
           <button
             key={key}
             className={tab === key ? 'active' : ''}
@@ -234,10 +242,13 @@ function App() {
             settings={settings}
             onSave={saveSettings}
             onExport={exportData}
+            onImport={importData}
             exporting={exporting}
+            importing={importing}
             lastExportPath={lastExportPath}
           />
         )}
+        {tab === 'about' && <AboutPage />}
       </main>
 
       <ReflectionModal
@@ -247,6 +258,57 @@ function App() {
         onSubmit={handleReflectionSubmit}
         onClose={() => setReflectionOpen(false)}
         saving={reflectionSaving}
+      />
+
+      <MusicPlayer
+        settings={settings}
+        timerRunning={timer.running && !timer.auto_paused}
+        onVolumeChange={async (volume) => {
+          if (settings) {
+            await saveSettings({ ...settings, music_volume: volume })
+          }
+        }}
+      />
+
+      {/* Screenshot Gallery Button */}
+      {settings?.screenshot_enabled && (
+        <button
+          onClick={() => setGalleryOpen(true)}
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            left: '20px',
+            width: '50px',
+            height: '50px',
+            borderRadius: '50%',
+            border: 'none',
+            backgroundColor: 'var(--card-bg, #1a1a2e)',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '22px',
+            transition: 'all 0.2s ease',
+            zIndex: 100,
+          }}
+          title="View Screenshots"
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'scale(1.1)'
+            e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 212, 255, 0.3)'
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'scale(1)'
+            e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)'
+          }}
+        >
+          📸
+        </button>
+      )}
+
+      <ScreenshotGallery 
+        isOpen={galleryOpen} 
+        onClose={() => setGalleryOpen(false)} 
       />
     </div>
   )

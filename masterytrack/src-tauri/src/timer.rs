@@ -5,7 +5,7 @@ use std::time::Duration;
 use chrono::Utc;
 use tokio::sync::{Mutex, RwLock};
 use sysinfo::System;
-use tauri::Emitter;
+use tauri::{AppHandle, Emitter};
 
 use crate::db;
 use crate::errors::{AppError, AppResult};

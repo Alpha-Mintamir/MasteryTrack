@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use chrono::{DateTime, Duration, NaiveDateTime, TimeZone, Utc};
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use sqlx::{Row, SqlitePool};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 use crate::errors::{AppError, AppResult};
 use crate::models::{
@@ -15,7 +15,7 @@ pub async fn init_pool(app: &AppHandle) -> AppResult<(SqlitePool, PathBuf)> {
     let data_dir = app
         .path()
         .app_data_dir()
-        .ok_or_else(|| AppError::Custom("Unable to resolve app data directory".into()))?;
+        .map_err(|e| AppError::Custom(format!("Unable to resolve app data directory: {e}")))?;
     tokio::fs::create_dir_all(&data_dir).await?;
     let db_path = data_dir.join("masterytrack.db");
 
@@ -68,9 +68,33 @@ async fn run_migrations(pool: &SqlitePool) -> AppResult<()> {
             productivity_mode_enabled INTEGER NOT NULL DEFAULT 0,
             allowed_apps TEXT NOT NULL DEFAULT '[]',
             blocked_apps TEXT NOT NULL DEFAULT '[]',
-            auto_backup_path TEXT
+            auto_backup_path TEXT,
+            screenshot_enabled INTEGER DEFAULT 0,
+            screenshot_storage_path TEXT,
+            screenshot_retention_days INTEGER DEFAULT 7,
+            music_enabled INTEGER DEFAULT 0,
+            music_playlist_type TEXT DEFAULT 'focus',
+            music_volume REAL DEFAULT 0.5,
+            music_auto_play INTEGER DEFAULT 0,
+            music_custom_playlist_url TEXT
         );
     "#;
+    
+    // Migrate existing settings table if new columns don't exist
+    let migrations = [
+        "ALTER TABLE settings ADD COLUMN screenshot_enabled INTEGER DEFAULT 0",
+        "ALTER TABLE settings ADD COLUMN screenshot_storage_path TEXT",
+        "ALTER TABLE settings ADD COLUMN screenshot_retention_days INTEGER DEFAULT 7",
+        "ALTER TABLE settings ADD COLUMN music_enabled INTEGER DEFAULT 0",
+        "ALTER TABLE settings ADD COLUMN music_playlist_type TEXT DEFAULT 'focus'",
+        "ALTER TABLE settings ADD COLUMN music_volume REAL DEFAULT 0.5",
+        "ALTER TABLE settings ADD COLUMN music_auto_play INTEGER DEFAULT 0",
+        "ALTER TABLE settings ADD COLUMN music_custom_playlist_url TEXT",
+    ];
+    
+    for migration in migrations.iter() {
+        let _ = sqlx::query(migration).execute(pool).await;
+    }
 
     sqlx::query(create_skills).execute(pool).await?;
     sqlx::query(create_sessions).execute(pool).await?;
@@ -94,14 +118,16 @@ pub async fn ensure_settings(pool: &SqlitePool) -> AppResult<AppSettings> {
 }
 
 pub async fn save_settings(pool: &SqlitePool, settings: &AppSettings) -> AppResult<()> {
-    let (id, name, daily_goal, idle_timeout, productivity, allowed, blocked, backup) =
+    let (id, name, daily_goal, idle_timeout, productivity, allowed, blocked, backup, screenshot_enabled, screenshot_path, screenshot_retention, music_enabled, music_playlist_type, music_volume, music_auto_play, music_custom_url) =
         settings.to_row()?;
 
     sqlx::query(
         r#"
         INSERT INTO settings (id, skill_name, daily_goal_minutes, idle_timeout_minutes,
-            productivity_mode_enabled, allowed_apps, blocked_apps, auto_backup_path)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+            productivity_mode_enabled, allowed_apps, blocked_apps, auto_backup_path,
+            screenshot_enabled, screenshot_storage_path, screenshot_retention_days,
+            music_enabled, music_playlist_type, music_volume, music_auto_play, music_custom_playlist_url)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
         ON CONFLICT(id) DO UPDATE SET
             skill_name = excluded.skill_name,
             daily_goal_minutes = excluded.daily_goal_minutes,
@@ -109,7 +135,15 @@ pub async fn save_settings(pool: &SqlitePool, settings: &AppSettings) -> AppResu
             productivity_mode_enabled = excluded.productivity_mode_enabled,
             allowed_apps = excluded.allowed_apps,
             blocked_apps = excluded.blocked_apps,
-            auto_backup_path = excluded.auto_backup_path;
+            auto_backup_path = excluded.auto_backup_path,
+            screenshot_enabled = excluded.screenshot_enabled,
+            screenshot_storage_path = excluded.screenshot_storage_path,
+            screenshot_retention_days = excluded.screenshot_retention_days,
+            music_enabled = excluded.music_enabled,
+            music_playlist_type = excluded.music_playlist_type,
+            music_volume = excluded.music_volume,
+            music_auto_play = excluded.music_auto_play,
+            music_custom_playlist_url = excluded.music_custom_playlist_url;
     "#,
     )
     .bind(id)
@@ -120,6 +154,14 @@ pub async fn save_settings(pool: &SqlitePool, settings: &AppSettings) -> AppResu
     .bind(allowed)
     .bind(blocked)
     .bind(backup)
+    .bind(screenshot_enabled)
+    .bind(screenshot_path)
+    .bind(screenshot_retention)
+    .bind(music_enabled)
+    .bind(music_playlist_type)
+    .bind(music_volume)
+    .bind(music_auto_play)
+    .bind(music_custom_url)
     .execute(pool)
     .await?;
 
@@ -234,7 +276,7 @@ pub async fn fetch_dashboard_stats(
 
 async fn sum_minutes_since(pool: &SqlitePool, start: NaiveDateTime) -> AppResult<f64> {
     let query = r#"
-        SELECT COALESCE(SUM(duration_minutes), 0) as total
+        SELECT CAST(COALESCE(SUM(duration_minutes), 0) AS REAL) as total
         FROM sessions
         WHERE start_time >= ?1
     "#;
@@ -246,7 +288,7 @@ async fn sum_minutes_since(pool: &SqlitePool, start: NaiveDateTime) -> AppResult
 }
 
 async fn sum_all_minutes(pool: &SqlitePool) -> AppResult<f64> {
-    let total: f64 = sqlx::query_scalar::<_, f64>("SELECT COALESCE(SUM(duration_minutes), 0) FROM sessions")
+    let total: f64 = sqlx::query_scalar::<_, f64>("SELECT CAST(COALESCE(SUM(duration_minutes), 0) AS REAL) FROM sessions")
         .fetch_one(pool)
         .await?;
     Ok(total)
@@ -374,17 +416,29 @@ pub async fn export_sessions(
     pool: &SqlitePool,
     format: &str,
     output: &Path,
+    include_settings: bool,
 ) -> AppResult<PathBuf> {
     let sessions = list_sessions(pool).await?;
     match format {
-        "csv" => export_csv(&sessions, output).await,
-        "json" => export_json(&sessions, output).await,
+        "csv" => export_csv(&sessions, output, include_settings, pool).await,
+        "json" => export_json(&sessions, output, include_settings, pool).await,
         _ => Err(AppError::UnsupportedExportFormat),
     }
 }
 
-async fn export_csv(data: &[SessionHistoryRow], output: &Path) -> AppResult<PathBuf> {
+async fn export_csv(data: &[SessionHistoryRow], output: &Path, include_settings: bool, pool: &SqlitePool) -> AppResult<PathBuf> {
     let mut wtr = csv::Writer::from_writer(Vec::new());
+    
+    // Write metadata header if including settings
+    if include_settings {
+        let settings = ensure_settings(pool).await?;
+        wtr.write_record(["# MasteryTrack Export"])?;
+        wtr.write_record(["# Format: CSV with Settings"])?;
+        wtr.write_record(["# Version: 1.0"])?;
+        wtr.write_record(["# Settings JSON:", &serde_json::to_string(&settings)?])?;
+        wtr.write_record(["", ""])?; // Empty row separator
+    }
+    
     wtr.write_record([
         "id",
         "start_time",
@@ -414,8 +468,21 @@ async fn export_csv(data: &[SessionHistoryRow], output: &Path) -> AppResult<Path
     Ok(output.to_path_buf())
 }
 
-async fn export_json(data: &[SessionHistoryRow], output: &Path) -> AppResult<PathBuf> {
-    let json = serde_json::to_vec_pretty(data)?;
+async fn export_json(data: &[SessionHistoryRow], output: &Path, include_settings: bool, pool: &SqlitePool) -> AppResult<PathBuf> {
+    use serde_json::json;
+    
+    let mut export_data = json!({
+        "version": "1.0",
+        "exported_at": chrono::Utc::now().to_rfc3339(),
+        "sessions": data,
+    });
+    
+    if include_settings {
+        let settings = ensure_settings(pool).await?;
+        export_data["settings"] = json!(settings);
+    }
+    
+    let json = serde_json::to_vec_pretty(&export_data)?;
     tokio::fs::write(output, json).await?;
     Ok(output.to_path_buf())
 }
@@ -426,4 +493,161 @@ pub async fn backup_database<P: AsRef<Path>>(db_path: P, target_dir: &Path) -> A
     let backup_path = target_dir.join(format!("masterytrack-{timestamp}.db"));
     tokio::fs::copy(db_path, &backup_path).await?;
     Ok(backup_path)
+}
+
+pub async fn import_data(
+    pool: &SqlitePool,
+    file_path: &Path,
+    import_settings: bool,
+) -> AppResult<()> {
+    let content = tokio::fs::read_to_string(file_path).await?;
+    
+    // Try JSON first
+    if let Ok(json_data) = serde_json::from_str::<serde_json::Value>(&content) {
+        // Check if it's our export format
+        if json_data.get("sessions").is_some() {
+            // Import sessions
+            if let Some(sessions) = json_data.get("sessions").and_then(|s| s.as_array()) {
+                for session in sessions {
+                    if let Ok(session_row) = serde_json::from_value::<SessionHistoryRow>(session.clone()) {
+                        // Insert or update session
+                        sqlx::query(
+                            r#"
+                            INSERT INTO sessions (id, start_time, end_time, duration_minutes, notes, what_practiced, what_learned, next_focus)
+                            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+                            ON CONFLICT(id) DO UPDATE SET
+                                start_time = excluded.start_time,
+                                end_time = excluded.end_time,
+                                duration_minutes = excluded.duration_minutes,
+                                notes = excluded.notes,
+                                what_practiced = excluded.what_practiced,
+                                what_learned = excluded.what_learned,
+                                next_focus = excluded.next_focus
+                            "#,
+                        )
+                        .bind(session_row.id)
+                        .bind(session_row.start.to_rfc3339())
+                        .bind(session_row.end.map(|dt| dt.to_rfc3339()))
+                        .bind(session_row.duration_minutes)
+                        .bind(session_row.notes.as_ref())
+                        .bind(session_row.what_practiced.as_ref())
+                        .bind(session_row.what_learned.as_ref())
+                        .bind(session_row.next_focus.as_ref())
+                        .execute(pool)
+                        .await?;
+                    }
+                }
+            }
+            
+            // Import settings if requested
+            if import_settings {
+                if let Some(settings_json) = json_data.get("settings") {
+                    if let Ok(settings) = serde_json::from_value::<AppSettings>(settings_json.clone()) {
+                        save_settings(pool, &settings).await?;
+                    }
+                }
+            }
+            
+            return Ok(());
+        }
+        
+        // Fallback: treat as array of sessions
+        if let Ok(sessions) = serde_json::from_value::<Vec<SessionHistoryRow>>(json_data.clone()) {
+            for session_row in sessions {
+                sqlx::query(
+                    r#"
+                    INSERT INTO sessions (id, start_time, end_time, duration_minutes, notes, what_practiced, what_learned, next_focus)
+                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+                    ON CONFLICT(id) DO UPDATE SET
+                        start_time = excluded.start_time,
+                        end_time = excluded.end_time,
+                        duration_minutes = excluded.duration_minutes,
+                        notes = excluded.notes,
+                        what_practiced = excluded.what_practiced,
+                        what_learned = excluded.what_learned,
+                        next_focus = excluded.next_focus
+                    "#,
+                )
+                .bind(session_row.id)
+                .bind(session_row.start.to_rfc3339())
+                .bind(session_row.end.map(|dt| dt.to_rfc3339()))
+                .bind(session_row.duration_minutes)
+                .bind(session_row.notes.as_ref())
+                .bind(session_row.what_practiced.as_ref())
+                .bind(session_row.what_learned.as_ref())
+                .bind(session_row.next_focus.as_ref())
+                .execute(pool)
+                .await?;
+            }
+            return Ok(());
+        }
+    }
+    
+    // Try CSV
+    let mut reader = csv::Reader::from_reader(content.as_bytes());
+    
+    // Skip metadata rows (lines starting with #)
+    let mut headers_skipped = false;
+    for result in reader.records() {
+        let record = result?;
+        
+        // Skip metadata rows
+        if let Some(first_field) = record.get(0) {
+            if first_field.starts_with('#') {
+                // Check if this is a settings row
+                if import_settings && first_field.contains("Settings JSON:") {
+                    if let Some(settings_str) = record.get(1) {
+                        if let Ok(settings) = serde_json::from_str::<AppSettings>(settings_str) {
+                            save_settings(pool, &settings).await?;
+                        }
+                    }
+                }
+                continue;
+            }
+        }
+        
+        // Parse CSV record
+        if !headers_skipped {
+            headers_skipped = true;
+            continue; // Skip header row
+        }
+        
+        let id: i64 = record.get(0).and_then(|s| s.parse().ok()).unwrap_or(0);
+        let start_time = record.get(1).unwrap_or("");
+        let end_time = record.get(2);
+        let duration: f64 = record.get(3).and_then(|s| s.parse().ok()).unwrap_or(0.0);
+        let notes = record.get(4);
+        let what_practiced = record.get(5);
+        let what_learned = record.get(6);
+        let next_focus = record.get(7);
+        
+        if id > 0 && !start_time.is_empty() {
+            sqlx::query(
+                r#"
+                INSERT INTO sessions (id, start_time, end_time, duration_minutes, notes, what_practiced, what_learned, next_focus)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+                ON CONFLICT(id) DO UPDATE SET
+                    start_time = excluded.start_time,
+                    end_time = excluded.end_time,
+                    duration_minutes = excluded.duration_minutes,
+                    notes = excluded.notes,
+                    what_practiced = excluded.what_practiced,
+                    what_learned = excluded.what_learned,
+                    next_focus = excluded.next_focus
+                "#,
+            )
+            .bind(id)
+            .bind(start_time)
+            .bind(end_time)
+            .bind(duration)
+            .bind(notes)
+            .bind(what_practiced)
+            .bind(what_learned)
+            .bind(next_focus)
+            .execute(pool)
+            .await?;
+        }
+    }
+    
+    Ok(())
 }

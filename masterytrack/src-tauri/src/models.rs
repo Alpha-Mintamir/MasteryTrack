@@ -82,6 +82,14 @@ pub struct SettingsRow {
     pub allowed_apps: String,
     pub blocked_apps: String,
     pub auto_backup_path: Option<String>,
+    pub screenshot_enabled: Option<i64>,
+    pub screenshot_storage_path: Option<String>,
+    pub screenshot_retention_days: Option<i64>,
+    pub music_enabled: Option<i64>,
+    pub music_playlist_type: Option<String>,
+    pub music_volume: Option<f64>,
+    pub music_auto_play: Option<i64>,
+    pub music_custom_playlist_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,6 +101,16 @@ pub struct AppSettings {
     pub allowed_apps: Vec<String>,
     pub blocked_apps: Vec<String>,
     pub auto_backup_path: Option<String>,
+    // Screenshot settings
+    pub screenshot_enabled: bool,
+    pub screenshot_storage_path: Option<String>,
+    pub screenshot_retention_days: i64,
+    // Music settings
+    pub music_enabled: bool,
+    pub music_playlist_type: String,
+    pub music_volume: f64,
+    pub music_auto_play: bool,
+    pub music_custom_playlist_url: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -105,6 +123,14 @@ impl Default for AppSettings {
             allowed_apps: Vec::new(),
             blocked_apps: Vec::new(),
             auto_backup_path: None,
+            screenshot_enabled: false,
+            screenshot_storage_path: None,
+            screenshot_retention_days: 7, // Keep screenshots for 7 days by default
+            music_enabled: false,
+            music_playlist_type: "focus".into(), // Default to focus music
+            music_volume: 0.5, // 50% volume
+            music_auto_play: false,
+            music_custom_playlist_url: None,
         }
     }
 }
@@ -119,12 +145,20 @@ impl From<SettingsRow> for AppSettings {
             allowed_apps: serde_json::from_str(&value.allowed_apps).unwrap_or_default(),
             blocked_apps: serde_json::from_str(&value.blocked_apps).unwrap_or_default(),
             auto_backup_path: value.auto_backup_path,
+            screenshot_enabled: value.screenshot_enabled.unwrap_or(0) == 1,
+            screenshot_storage_path: value.screenshot_storage_path,
+            screenshot_retention_days: value.screenshot_retention_days.unwrap_or(7),
+            music_enabled: value.music_enabled.unwrap_or(0) == 1,
+            music_playlist_type: value.music_playlist_type.unwrap_or_else(|| "focus".into()),
+            music_volume: value.music_volume.unwrap_or(0.5),
+            music_auto_play: value.music_auto_play.unwrap_or(0) == 1,
+            music_custom_playlist_url: value.music_custom_playlist_url,
         }
     }
 }
 
 impl AppSettings {
-    pub fn to_row(&self) -> AppResult<(i64, &str, i64, i64, i64, String, String, Option<String>)> {
+    pub fn to_row(&self) -> AppResult<(i64, &str, i64, i64, i64, String, String, Option<String>, i64, Option<String>, i64, i64, String, f64, i64, Option<String>)> {
         Ok((
             1,
             &self.skill_name,
@@ -134,6 +168,14 @@ impl AppSettings {
             serde_json::to_string(&self.allowed_apps)?,
             serde_json::to_string(&self.blocked_apps)?,
             self.auto_backup_path.clone(),
+            if self.screenshot_enabled { 1 } else { 0 },
+            self.screenshot_storage_path.clone(),
+            self.screenshot_retention_days,
+            if self.music_enabled { 1 } else { 0 },
+            self.music_playlist_type.clone(),
+            self.music_volume,
+            if self.music_auto_play { 1 } else { 0 },
+            self.music_custom_playlist_url.clone(),
         ))
     }
 }
@@ -154,6 +196,13 @@ pub struct SessionEditPayload {
 pub struct ExportRequest {
     pub format: ExportFormat,
     pub target_dir: Option<String>,
+    pub include_settings: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportRequest {
+    pub file_path: String,
+    pub import_settings: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

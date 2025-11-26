@@ -1,0 +1,45 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#5ad1ff" opacity="0.1"/>
+  
+  <!-- Outer progress ring (representing 10,000 hours journey) -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#5ad1ff" stroke-width="20" opacity="0.3"/>
+  
+  <!-- Progress arc (15% complete) -->
+  <path d="M 256 56 A 200 200 0 0 1 256 456" 
+        fill="none" 
+        stroke="#5ad1ff" 
+        stroke-width="20" 
+        stroke-linecap="round"
+        transform="rotate(-90 256 256)"/>
+  
+  <!-- Inner circle -->
+  <circle cx="256" cy="256" r="140" fill="#0f1424"/>
+  
+  <!-- Clock/hourglass icon -->
+  <g transform="translate(256, 256)">
+    <!-- Hourglass shape -->
+    <path d="M -40 -60 L 40 -60 L 20 -20 L -20 -20 Z M -20 -20 L 20 -20 L 0 0 L -20 0 Z M -20 0 L 0 0 L 20 20 L -20 20 Z M -20 20 L 20 20 L 40 60 L -40 60 Z" 
+          fill="#5ad1ff" 
+          stroke="#4cb0f5" 
+          stroke-width="2"/>
+    
+    <!-- Sand particles (top) -->
+    <circle cx="-15" cy="-35" r="3" fill="#fbbf24" opacity="0.8"/>
+    <circle cx="10" cy="-40" r="2.5" fill="#fbbf24" opacity="0.7"/>
+    <circle cx="5" cy="-30" r="2" fill="#fbbf24" opacity="0.6"/>
+    
+    <!-- Sand particles (bottom - accumulated) -->
+    <circle cx="-10" cy="35" r="3" fill="#fbbf24" opacity="0.8"/>
+    <circle cx="15" cy="40" r="2.5" fill="#fbbf24" opacity="0.7"/>
+    <circle cx="0" cy="30" r="2" fill="#fbbf24" opacity="0.6"/>
+    <circle cx="-5" cy="45" r="2" fill="#fbbf24" opacity="0.5"/>
+  </g>
+  
+  <!-- "10K" text at bottom -->
+  <text x="256" y="380" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#5ad1ff" text-anchor="middle">10K</text>
+</svg>
+
+
+
+

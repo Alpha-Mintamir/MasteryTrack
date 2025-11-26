@@ -1,6 +1,7 @@
 mod db;
 mod errors;
 mod models;
+mod screenshot;
 mod timer;
 
 use std::path::PathBuf;
@@ -8,20 +9,20 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use db::{
-    backup_database, ensure_settings, export_sessions, fetch_dashboard_stats, init_pool, list_sessions,
+    backup_database, ensure_settings, export_sessions, import_data as db_import_data, fetch_dashboard_stats, init_pool, list_sessions,
     save_settings, update_session as db_update_session, delete_session as db_delete_session,
 };
 use errors::{AppError, AppResult};
 use models::{
-    AppSettings, DashboardStats, ExportRequest, GoalNotification, ReflectionInput, SessionEditPayload,
+    AppSettings, DashboardStats, ExportRequest, ImportRequest, GoalNotification, ReflectionInput, SessionEditPayload,
     SessionHistoryRow, StartTimerResponse, TimerStatus,
 };
 use tauri::{
     async_runtime,
+    AppHandle,
     Emitter,
     Manager,
     State,
-    AppHandle,
 };
 use tokio::sync::RwLock;
 
@@ -124,6 +125,19 @@ async fn load_settings(state: State<'_, AppState>) -> Result<AppSettings, AppErr
 }
 
 #[tauri::command]
+async fn get_temp_dir() -> Result<String, AppError> {
+    use std::env;
+    let temp = env::temp_dir();
+    Ok(temp.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+async fn write_temp_file(path: String, content: String) -> Result<(), AppError> {
+    tokio::fs::write(&path, content).await?;
+    Ok(())
+}
+
+#[tauri::command]
 async fn persist_settings(
     state: State<'_, AppState>,
     new_settings: AppSettings,
@@ -153,18 +167,145 @@ async fn export_data(
     };
     tokio::fs::create_dir_all(&dir).await?;
     let filename = format!(
-        "sessions-{}.{}",
+        "masterytrack-export-{}.{}",
         chrono::Utc::now().format("%Y%m%d-%H%M%S"),
         request.format
     );
     let output = dir.join(filename);
-    let path = export_sessions(&state.pool, &request.format.to_string(), &output).await?;
+    let path = export_sessions(&state.pool, &request.format.to_string(), &output, request.include_settings).await?;
     Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+async fn import_data(
+    state: State<'_, AppState>,
+    request: ImportRequest,
+) -> Result<(), AppError> {
+    let file_path = PathBuf::from(&request.file_path);
+    db_import_data(&state.pool, &file_path, request.import_settings).await?;
+    
+    // Refresh settings if imported
+    if request.import_settings {
+        let updated = ensure_settings(&state.pool).await?;
+        {
+            let mut guard = state.settings.write().await;
+            *guard = updated.clone();
+        }
+        state.timer.update_settings(updated).await;
+    }
+    
+    Ok(())
+}
+
+#[derive(serde::Serialize)]
+struct ScreenshotInfo {
+    filename: String,
+    path: String,
+    timestamp: String,
+    size_kb: u64,
+}
+
+#[tauri::command]
+async fn list_screenshots(state: State<'_, AppState>) -> Result<Vec<ScreenshotInfo>, AppError> {
+    use tokio::fs;
+    
+    let storage_path = {
+        let settings = state.settings.read().await;
+        if let Some(ref path) = settings.screenshot_storage_path {
+            PathBuf::from(path)
+        } else {
+            state.db_path.parent()
+                .unwrap_or(&state.db_path)
+                .join("screenshots")
+        }
+    };
+    
+    let mut screenshots = Vec::new();
+    
+    if storage_path.exists() {
+        let mut entries = fs::read_dir(&storage_path).await?;
+        while let Some(entry) = entries.next_entry().await? {
+            let path = entry.path();
+            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("jpg") {
+                if let Ok(metadata) = entry.metadata().await {
+                    let filename = path.file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("")
+                        .to_string();
+                    
+                    // Extract timestamp from filename: screenshot_YYYYMMDD_HHMMSS_mmm.jpg
+                    let timestamp = filename
+                        .strip_prefix("screenshot_")
+                        .and_then(|s| s.strip_suffix(".jpg"))
+                        .map(|s| {
+                            // Parse YYYYMMDD_HHMMSS_mmm into readable format
+                            if s.len() >= 15 {
+                                let year = &s[0..4];
+                                let month = &s[4..6];
+                                let day = &s[6..8];
+                                let hour = &s[9..11];
+                                let min = &s[11..13];
+                                let sec = &s[13..15];
+                                format!("{}-{}-{} {}:{}:{}", year, month, day, hour, min, sec)
+                            } else {
+                                s.to_string()
+                            }
+                        })
+                        .unwrap_or_else(|| "Unknown".to_string());
+                    
+                    screenshots.push(ScreenshotInfo {
+                        filename,
+                        path: path.to_string_lossy().to_string(),
+                        timestamp,
+                        size_kb: metadata.len() / 1024,
+                    });
+                }
+            }
+        }
+    }
+    
+    // Sort by filename (newest first - since filename has timestamp)
+    screenshots.sort_by(|a, b| b.filename.cmp(&a.filename));
+    
+    Ok(screenshots)
+}
+
+#[tauri::command]
+async fn delete_screenshot(path: String) -> Result<(), AppError> {
+    use tokio::fs;
+    fs::remove_file(&path).await?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn read_screenshot_base64(path: String) -> Result<String, AppError> {
+    use tokio::fs;
+    use base64::{Engine as _, engine::general_purpose};
+    
+    let data = fs::read(&path).await?;
+    let base64_data = general_purpose::STANDARD.encode(&data);
+    Ok(format!("data:image/jpeg;base64,{}", base64_data))
+}
+
+#[tauri::command]
+async fn get_screenshot_path(state: State<'_, AppState>) -> Result<String, AppError> {
+    let storage_path = {
+        let settings = state.settings.read().await;
+        if let Some(ref path) = settings.screenshot_storage_path {
+            PathBuf::from(path)
+        } else {
+            state.db_path.parent()
+                .unwrap_or(&state.db_path)
+                .join("screenshots")
+        }
+    };
+    Ok(storage_path.to_string_lossy().to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             start_timer,
             stop_timer,
@@ -175,7 +316,14 @@ pub fn run() {
             delete_session,
             load_settings,
             persist_settings,
-            export_data
+            export_data,
+            import_data,
+            get_temp_dir,
+            write_temp_file,
+            list_screenshots,
+            delete_screenshot,
+            get_screenshot_path,
+            read_screenshot_base64
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -225,14 +373,39 @@ fn spawn_background_workers(handle: AppHandle, timer: TimerService) {
     });
 
     let tick_app = handle.clone();
+    let tick_timer = timer.clone();
     async_runtime::spawn(async move {
         loop {
-            let status = timer.status().await;
+            let status = tick_timer.status().await;
             tick_app.emit("timer:tick", &status).ok();
             update_tray_tooltip(&tick_app, &status);
             tokio::time::sleep(Duration::from_secs(1)).await;
         }
     });
+
+    // Screenshot worker
+    if let Some(state) = handle.try_state::<AppState>() {
+        let screenshot_timer = timer.clone();
+        let screenshot_app = handle.clone();
+        let screenshot_settings = state.settings.clone();
+        let screenshot_db_path = state.db_path.clone();
+        async_runtime::spawn(async move {
+            // Initialize screenshot service with default storage path if not set
+            let storage_path = {
+                let settings = screenshot_settings.read().await;
+                if let Some(ref path) = settings.screenshot_storage_path {
+                    PathBuf::from(path)
+                } else {
+                    // Default to screenshots folder in app data directory
+                    screenshot_db_path.parent()
+                        .unwrap_or(&screenshot_db_path)
+                        .join("screenshots")
+                }
+            };
+            let service = screenshot::ScreenshotService::new(screenshot_settings.clone(), storage_path);
+            screenshot::screenshot_worker(service, screenshot_app, screenshot_timer).await;
+        });
+    }
 }
 
 const TRAY_ID: &str = "masterytrack-tray";
@@ -312,7 +485,7 @@ fn build_tray(app: AppHandle) -> AppResult<()> {
 
 fn update_tray_tooltip(app: &AppHandle, status: &TimerStatus) {
     use tauri::tray::TrayIconId;
-    if let Some(tray) = app.tray_by_id(TrayIconId::new(TRAY_ID)) {
+    if let Some(tray) = app.tray_by_id(&TrayIconId::new(TRAY_ID)) {
         let tooltip = if status.running {
             let hrs = status.elapsed_seconds as f64 / 3600.0;
             format!("Practicing • {:.2}h today", hrs)
