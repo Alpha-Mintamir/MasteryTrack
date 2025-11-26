@@ -23,9 +23,9 @@ mod idle;
 #[path = "windows_impl.rs"]
 mod idle;
 
-// #[cfg(target_os = "macos")]
-// #[path = "macos_impl.rs"]
-// mod idle;
+#[cfg(target_os = "macos")]
+#[path = "macos_impl.rs"]
+mod idle;
 
 pub use idle::get_idle_time;
 
