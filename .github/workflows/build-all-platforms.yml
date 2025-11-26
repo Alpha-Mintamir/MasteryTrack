@@ -143,9 +143,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-builds
-          path: |
-            masterytrack/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
-            masterytrack/src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app
+          path: masterytrack/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
 
   create-release:
     name: Create Release
@@ -161,12 +159,18 @@ jobs:
           path: artifacts
       
       - name: Display structure of downloaded files
-        run: ls -R artifacts
+        run: |
+          echo "=== All artifacts ==="
+          ls -R artifacts
+          echo "=== Finding all release files ==="
+          find artifacts -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" -o -name "*.exe" -o -name "*.msi" -o -name "*.dmg" \)
       
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: MasteryTrack ${{ github.ref_name }}
+          fail_on_unmatched_files: false
+          make_latest: true
           body: |
             ## MasteryTrack ${{ github.ref_name }}
             
@@ -209,9 +213,12 @@ jobs:
             
             Built with ❤️ by [Alpha Lencho](https://github.com/Alpha-Mintamir)
           files: |
-            artifacts/linux-builds/*
-            artifacts/windows-builds/*
-            artifacts/macos-builds/*
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
+            artifacts/**/*.AppImage
+            artifacts/**/*.exe
+            artifacts/**/*.msi
+            artifacts/**/*.dmg
           draft: false
           prerelease: false
         env:

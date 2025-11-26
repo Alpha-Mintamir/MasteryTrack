@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MasteryTrack — Technical Documentation</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg: #ffffff;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --code-bg: #f3f4f6;
+            --table-header: #f9fafb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: var(--text);
+            background: var(--bg);
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+        
+        @media print {
+            body {
+                padding: 20px;
+                font-size: 10pt;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            h2 {
+                page-break-after: avoid;
+            }
+            pre, table {
+                page-break-inside: avoid;
+            }
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            padding-bottom: 30px;
+            border-bottom: 2px solid var(--primary);
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 28pt;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            font-size: 14pt;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+        
+        .header .meta {
+            font-size: 10pt;
+            color: var(--text-muted);
+        }
+        
+        .header .meta span {
+            margin: 0 10px;
+        }
+        
+        /* Table of Contents */
+        .toc {
+            background: var(--table-header);
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .toc h2 {
+            font-size: 14pt;
+            margin-bottom: 15px;
+            color: var(--primary-dark);
+        }
+        
+        .toc ol {
+            padding-left: 20px;
+        }
+        
+        .toc li {
+            margin: 8px 0;
+        }
+        
+        .toc a {
+            color: var(--text);
+            text-decoration: none;
+        }
+        
+        .toc a:hover {
+            color: var(--primary);
+        }
+        
+        /* Headings */
+        h2 {
+            font-size: 18pt;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        h3 {
+            font-size: 14pt;
+            font-weight: 600;
+            color: var(--text);
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        
+        h4 {
+            font-size: 12pt;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        /* Paragraphs */
+        p {
+            margin-bottom: 15px;
+        }
+        
+        /* Code */
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9pt;
+            background: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        pre {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            padding: 15px 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-size: 9pt;
+            line-height: 1.5;
+        }
+        
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        
+        .keyword { color: #cba6f7; }
+        .string { color: #a6e3a1; }
+        .comment { color: #6c7086; }
+        .function { color: #89b4fa; }
+        .type { color: #f9e2af; }
+        
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 10pt;
+        }
+        
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+        
+        th {
+            background: var(--table-header);
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+        
+        /* Architecture diagram */
+        .architecture {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 8pt;
+            line-height: 1.4;
+            white-space: pre;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        /* Lists */
+        ul, ol {
+            margin: 10px 0 15px 25px;
+        }
+        
+        li {
+            margin: 5px 0;
+        }
+        
+        /* Boxes */
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid var(--primary);
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        /* Footer */
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 10pt;
+        }
+        
+        /* Section styling */
+        section {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>MasteryTrack</h1>
+    <div class="subtitle">Technical Documentation</div>
+    <div class="meta">
+        <span><strong>Version:</strong> 0.1.0</span>
+        <span><strong>Author:</strong> Alpha Lencho</span>
+        <span><strong>Date:</strong> November 2025</span>
+    </div>
+    <div class="meta" style="margin-top: 5px;">
+        <em>Built with Cursor AI</em>
+    </div>
+</div>
+
+<nav class="toc">
+    <h2>Table of Contents</h2>
+    <ol>
+        <li><a href="#architecture">Architecture Overview</a></li>
+        <li><a href="#builds">Build Outputs by Platform</a></li>
+        <li><a href="#implementation">Technical Implementation</a></li>
+        <li><a href="#cicd">CI/CD Pipeline</a></li>
+        <li><a href="#decisions">Key Technical Decisions</a></li>
+    </ol>
+</nav>
+
+<section id="architecture">
+    <h2>1. Architecture Overview</h2>
+    
+    <p>MasteryTrack uses a <strong>hybrid architecture</strong> combining web technologies for the UI with native Rust for system-level operations.</p>
+    
+    <div class="architecture">┌──────────────────────────────────────────────────────────────┐
+│                      MasteryTrack App                         │
+├──────────────────────────────────────────────────────────────┤
+│                                                               │
+│   ┌─────────────────────┐     ┌─────────────────────────┐    │
+│   │   FRONTEND (UI)     │     │   BACKEND (Native)      │    │
+│   │                     │     │                         │    │
+│   │  • React 19         │ IPC │  • Rust (async/Tokio)   │    │
+│   │  • TypeScript       │◄───►│  • SQLite (sqlx)        │    │
+│   │  • Zustand          │     │  • System APIs          │    │
+│   │  • Web Audio API    │     │  • Screenshot capture   │    │
+│   │  • Vite             │     │  • Idle detection       │    │
+│   └─────────────────────┘     └─────────────────────────┘    │
+│                                                               │
+│   ┌──────────────────────────────────────────────────────┐   │
+│   │                   TAURI 2 SHELL                       │   │
+│   │  • Native WebView (WRY)                               │   │
+│   │  • System tray integration                            │   │
+│   │  • IPC bridge (JavaScript ↔ Rust)                     │   │
+│   └──────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────┘</div>
+
+    <h3>Technology Stack</h3>
+    <table>
+        <tr>
+            <th>Layer</th>
+            <th>Technology</th>
+            <th>Purpose</th>
+        </tr>
+        <tr>
+            <td><strong>Frontend</strong></td>
+            <td>React 19 + TypeScript</td>
+            <td>User interface</td>
+        </tr>
+        <tr>
+            <td><strong>State Management</strong></td>
+            <td>Zustand</td>
+            <td>Global app state</td>
+        </tr>
+        <tr>
+            <td><strong>Bundler</strong></td>
+            <td>Vite</td>
+            <td>Fast development & builds</td>
+        </tr>
+        <tr>
+            <td><strong>Desktop Shell</strong></td>
+            <td>Tauri 2</td>
+            <td>Native app wrapper</td>
+        </tr>
+        <tr>
+            <td><strong>Backend</strong></td>
+            <td>Rust + Tokio</td>
+            <td>Async system operations</td>
+        </tr>
+        <tr>
+            <td><strong>Database</strong></td>
+            <td>SQLite + sqlx</td>
+            <td>Local persistent storage</td>
+        </tr>
+        <tr>
+            <td><strong>Audio</strong></td>
+            <td>Web Audio API</td>
+            <td>Procedural sound generation</td>
+        </tr>
+    </table>
+</section>
+
+<section id="builds" class="page-break">
+    <h2>2. Build Outputs by Platform</h2>
+    
+    <h3>Linux</h3>
+    <table>
+        <tr>
+            <th>File</th>
+            <th>Format</th>
+            <th>Target Users</th>
+        </tr>
+        <tr>
+            <td><code>MasteryTrack_0.1.0_amd64.deb</code></td>
+            <td>Debian Package</td>
+            <td>Ubuntu, Debian, Pop!_OS, Mint</td>
+        </tr>
+        <tr>
+            <td><code>MasteryTrack-0.1.0-1.x86_64.rpm</code></td>
+            <td>RPM Package</td>
+            <td>Fedora, RHEL, CentOS</td>
+        </tr>
+        <tr>
+            <td><code>MasteryTrack_0.1.0_amd64.AppImage</code></td>
+            <td>AppImage</td>
+            <td>Any Linux (portable)</td>
+        </tr>
+    </table>
+    <p><strong>Build Environment:</strong> Ubuntu 22.04 (GitHub Actions)</p>
+
+    <h3>Windows</h3>
+    <table>
+        <tr>
+            <th>File</th>
+            <th>Format</th>
+            <th>Target Users</th>
+        </tr>
+        <tr>
+            <td><code>MasteryTrack_0.1.0_x64-setup.exe</code></td>
+            <td>NSIS Installer</td>
+            <td>Standard users</td>
+        </tr>
+        <tr>
+            <td><code>MasteryTrack_0.1.0_x64.msi</code></td>
+            <td>MSI Package</td>
+            <td>Enterprise/IT deployment</td>
+        </tr>
+    </table>
+    <p><strong>Build Environment:</strong> Windows Server 2022 (GitHub Actions)</p>
+
+    <h3>macOS</h3>
+    <table>
+        <tr>
+            <th>File</th>
+            <th>Format</th>
+            <th>Target Users</th>
+        </tr>
+        <tr>
+            <td><code>MasteryTrack_0.1.0_universal.dmg</code></td>
+            <td>Disk Image</td>
+            <td>All Mac users</td>
+        </tr>
+        <tr>
+            <td><code>MasteryTrack.app</code></td>
+            <td>App Bundle</td>
+            <td>Universal (Intel + Apple Silicon)</td>
+        </tr>
+    </table>
+    <p><strong>Build Command:</strong> <code>cargo tauri build --target universal-apple-darwin</code></p>
+
+    <h3>Binary Size Comparison</h3>
+    <table>
+        <tr>
+            <th>Platform</th>
+            <th>Size</th>
+            <th>Notes</th>
+        </tr>
+        <tr>
+            <td>Linux .deb</td>
+            <td>~7 MB</td>
+            <td>Uses system libraries</td>
+        </tr>
+        <tr>
+            <td>Linux .AppImage</td>
+            <td>~81 MB</td>
+            <td>Self-contained</td>
+        </tr>
+        <tr>
+            <td>Windows .exe</td>
+            <td>~11 MB</td>
+            <td>Includes WebView2 bootstrapper</td>
+        </tr>
+        <tr>
+            <td>macOS .dmg</td>
+            <td>~15 MB</td>
+            <td>Universal binary (2 architectures)</td>
+        </tr>
+    </table>
+</section>
+
+<section id="implementation" class="page-break">
+    <h2>3. Technical Implementation</h2>
+    
+    <h3>3.1 Timer Service</h3>
+    <p><strong>Location:</strong> <code>src-tauri/src/timer.rs</code></p>
+    <p>The timer is implemented as an async Rust service that tracks elapsed time, emits events to the frontend, and supports auto-pause on idle detection.</p>
+    
+    <pre><code><span class="keyword">pub struct</span> <span class="type">TimerService</span> {
+    pool: SqlitePool,                    <span class="comment">// Database connection</span>
+    settings: Arc&lt;RwLock&lt;AppSettings&gt;&gt;,  <span class="comment">// Shared settings</span>
+    state: Arc&lt;RwLock&lt;TimerState&gt;&gt;,      <span class="comment">// Current state</span>
+}
+
+<span class="keyword">pub struct</span> <span class="type">TimerState</span> {
+    running: <span class="type">bool</span>,
+    started_at: <span class="type">Option</span>&lt;DateTime&lt;Utc&gt;&gt;,
+    elapsed_seconds: <span class="type">u64</span>,
+    auto_paused: <span class="type">bool</span>,
+    last_reason: <span class="type">Option</span>&lt;<span class="type">String</span>&gt;,
+}</code></pre>
+
+    <h3>3.2 Idle Detection</h3>
+    <p><strong>Location:</strong> <code>src-tauri/vendor/user-idle-time/src/</code></p>
+    <p>Platform-specific implementations detect user inactivity:</p>
+    
+    <h4>Linux (X11)</h4>
+    <pre><code><span class="comment">// Uses XScreenSaver extension</span>
+<span class="keyword">let</span> info = <span class="function">XScreenSaverQueryInfo</span>(display, root);
+Duration::<span class="function">from_millis</span>(info.idle <span class="keyword">as</span> <span class="type">u64</span>)</code></pre>
+
+    <h4>Windows</h4>
+    <pre><code><span class="comment">// Uses Win32 GetLastInputInfo API</span>
+<span class="keyword">let mut</span> info = LASTINPUTINFO::<span class="function">default</span>();
+<span class="function">GetLastInputInfo</span>(&amp;<span class="keyword">mut</span> info);
+Duration::<span class="function">from_millis</span>(<span class="function">GetTickCount</span>() - info.dwTime)</code></pre>
+
+    <h4>macOS</h4>
+    <pre><code><span class="comment">// Uses Core Graphics framework</span>
+<span class="keyword">unsafe extern</span> <span class="string">"C"</span> {
+    <span class="keyword">fn</span> <span class="function">CGEventSourceSecondsSinceLastEventType</span>(
+        source_state: <span class="type">i32</span>,
+        event_type: <span class="type">u32</span>,
+    ) -&gt; <span class="type">f64</span>;
+}
+
+<span class="keyword">pub fn</span> <span class="function">get_idle_time</span>() -&gt; Result&lt;Duration&gt; {
+    <span class="keyword">let</span> seconds = <span class="keyword">unsafe</span> { 
+        <span class="function">CGEventSourceSecondsSinceLastEventType</span>(<span class="string">0</span>, !<span class="string">0u32</span>) 
+    };
+    Ok(Duration::<span class="function">from_secs_f64</span>(seconds))
+}</code></pre>
+
+    <h3>3.3 Ambient Sound Generator</h3>
+    <p><strong>Location:</strong> <code>src/utils/ambientSounds.ts</code></p>
+    <p>Sounds are generated <strong>procedurally</strong> using the Web Audio API — no audio files are bundled:</p>
+    
+    <pre><code><span class="keyword">class</span> <span class="type">AmbientSoundGenerator</span> {
+    <span class="keyword">private</span> audioContext: AudioContext;
+    
+    <span class="function">generateSound</span>(type: SoundType): AudioBuffer {
+        <span class="keyword">const</span> buffer = <span class="keyword">this</span>.audioContext.<span class="function">createBuffer</span>(
+            <span class="string">2</span>,                    <span class="comment">// stereo</span>
+            sampleRate * <span class="string">10</span>,      <span class="comment">// 10 seconds</span>
+            sampleRate
+        );
+        
+        <span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="string">0</span>; i &lt; buffer.length; i++) {
+            <span class="keyword">switch</span> (type) {
+                <span class="keyword">case</span> <span class="string">'white_noise'</span>:
+                    data[i] = Math.<span class="function">random</span>() * <span class="string">2</span> - <span class="string">1</span>;
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> <span class="string">'brown_noise'</span>:
+                    <span class="comment">// Low-pass filtered noise</span>
+                    data[i] = data[i-<span class="string">1</span>] * <span class="string">0.99</span> + 
+                              (Math.<span class="function">random</span>() * <span class="string">2</span> - <span class="string">1</span>) * <span class="string">0.02</span>;
+                    <span class="keyword">break</span>;
+            }
+        }
+        <span class="keyword">return</span> buffer;
+    }
+}</code></pre>
+
+    <p><strong>Available Sounds:</strong> Rain, White Noise, Brown Noise, Pink Noise, Ocean Waves, Fireplace, Wind</p>
+
+    <h3>3.4 Screenshot Capture</h3>
+    <p><strong>Location:</strong> <code>src-tauri/src/screenshot.rs</code></p>
+    <pre><code><span class="keyword">pub async fn</span> <span class="function">capture_screenshot</span>(&amp;<span class="keyword">self</span>) -&gt; AppResult&lt;PathBuf&gt; {
+    <span class="comment">// 1. Capture screen</span>
+    <span class="keyword">let</span> screens = Screen::<span class="function">all</span>()?;
+    <span class="keyword">let</span> image = screens[<span class="string">0</span>].<span class="function">capture</span>()?;
+    
+    <span class="comment">// 2. Convert to image format</span>
+    <span class="keyword">let</span> rgba_image = image::RgbaImage::<span class="function">from_raw</span>(
+        image.<span class="function">width</span>(), image.<span class="function">height</span>(),
+        image.<span class="function">rgba</span>().<span class="function">clone</span>(),
+    )?;
+    
+    <span class="comment">// 3. Save as JPEG</span>
+    image::DynamicImage::ImageRgba8(rgba_image)
+        .<span class="function">save</span>(&amp;path)?;
+    
+    Ok(path)
+}</code></pre>
+    <p><strong>Random Timing:</strong> Screenshots taken at 10-20 minute intervals to avoid patterns.</p>
+
+    <h3>3.5 Database Schema</h3>
+    <pre><code><span class="keyword">CREATE TABLE</span> sessions (
+    id <span class="type">INTEGER PRIMARY KEY</span>,
+    start_time <span class="type">TEXT NOT NULL</span>,
+    end_time <span class="type">TEXT</span>,
+    duration_minutes <span class="type">REAL DEFAULT 0</span>,
+    notes <span class="type">TEXT</span>,
+    what_practiced <span class="type">TEXT</span>,
+    what_learned <span class="type">TEXT</span>,
+    next_focus <span class="type">TEXT</span>
+);
+
+<span class="keyword">CREATE TABLE</span> settings (
+    id <span class="type">INTEGER PRIMARY KEY CHECK</span> (id = <span class="string">1</span>),
+    skill_name <span class="type">TEXT DEFAULT</span> <span class="string">'My Skill'</span>,
+    daily_goal_minutes <span class="type">INTEGER DEFAULT 60</span>,
+    total_hours_target <span class="type">REAL DEFAULT 10000</span>,
+    idle_threshold_seconds <span class="type">INTEGER DEFAULT 300</span>
+);</code></pre>
+
+    <h3>3.6 IPC Communication</h3>
+    <p><strong>Rust (Backend):</strong></p>
+    <pre><code><span class="keyword">#[tauri::command]</span>
+<span class="keyword">async fn</span> <span class="function">start_timer</span>(state: State&lt;<span class="type">AppState</span>&gt;) -&gt; Result&lt;Response&gt; {
+    state.timer.<span class="function">start</span>().<span class="keyword">await</span>?;
+    Ok(Response { started_at: Utc::<span class="function">now</span>() })
+}</code></pre>
+
+    <p><strong>TypeScript (Frontend):</strong></p>
+    <pre><code><span class="keyword">import</span> { invoke } <span class="keyword">from</span> <span class="string">'@tauri-apps/api/core'</span>;
+<span class="keyword">import</span> { listen } <span class="keyword">from</span> <span class="string">'@tauri-apps/api/event'</span>;
+
+<span class="comment">// Call Rust function</span>
+<span class="keyword">const</span> status = <span class="keyword">await</span> <span class="function">invoke</span>&lt;TimerStatus&gt;(<span class="string">'timer_status'</span>);
+
+<span class="comment">// Listen to events</span>
+<span class="keyword">await</span> <span class="function">listen</span>(<span class="string">'timer:tick'</span>, (event) =&gt; {
+    <span class="function">setTimer</span>(event.payload);
+});</code></pre>
+</section>
+
+<section id="cicd" class="page-break">
+    <h2>4. CI/CD Pipeline</h2>
+    
+    <p><strong>Location:</strong> <code>.github/workflows/build-all-platforms.yml</code></p>
+    
+    <pre><code><span class="keyword">name:</span> Build and Release MasteryTrack
+
+<span class="keyword">on:</span>
+  <span class="keyword">push:</span>
+    <span class="keyword">tags:</span> [<span class="string">'v*'</span>]  <span class="comment"># Triggers on version tags</span>
+
+<span class="keyword">jobs:</span>
+  <span class="function">build-linux:</span>
+    <span class="keyword">runs-on:</span> ubuntu-22.04
+    <span class="keyword">steps:</span>
+      - Install: GTK3, WebKit2GTK, AppIndicator
+      - Setup: Node.js 20, Rust stable
+      - Build: npm ci && cargo tauri build
+      - Upload: .deb, .rpm, .AppImage
+
+  <span class="function">build-windows:</span>
+    <span class="keyword">runs-on:</span> windows-latest
+    <span class="keyword">steps:</span>
+      - Setup: Node.js 20, Rust stable
+      - Build: npm ci && cargo tauri build
+      - Upload: .exe, .msi
+
+  <span class="function">build-macos:</span>
+    <span class="keyword">runs-on:</span> macos-latest
+    <span class="keyword">steps:</span>
+      - Setup: Node.js 20, Rust stable
+      - Build: cargo tauri build --target universal-apple-darwin
+      - Upload: .dmg
+
+  <span class="function">create-release:</span>
+    <span class="keyword">needs:</span> [build-linux, build-windows, build-macos]
+    <span class="keyword">steps:</span>
+      - Download all artifacts
+      - Create GitHub Release
+      - Attach all binaries</code></pre>
+
+    <h3>Build Times</h3>
+    <table>
+        <tr>
+            <th>Platform</th>
+            <th>Duration</th>
+        </tr>
+        <tr>
+            <td>Linux</td>
+            <td>~20 minutes</td>
+        </tr>
+        <tr>
+            <td>Windows</td>
+            <td>~30 minutes</td>
+        </tr>
+        <tr>
+            <td>macOS</td>
+            <td>~23 minutes</td>
+        </tr>
+        <tr>
+            <td><strong>Total (parallel)</strong></td>
+            <td><strong>~30 minutes</strong></td>
+        </tr>
+    </table>
+</section>
+
+<section id="decisions">
+    <h2>5. Key Technical Decisions</h2>
+    
+    <table>
+        <tr>
+            <th>Decision</th>
+            <th>Rationale</th>
+        </tr>
+        <tr>
+            <td><strong>Tauri over Electron</strong></td>
+            <td>10x smaller binaries, native Rust performance, better security</td>
+        </tr>
+        <tr>
+            <td><strong>SQLite over cloud DB</strong></td>
+            <td>Offline-first, privacy-focused, no account required</td>
+        </tr>
+        <tr>
+            <td><strong>Procedural audio</strong></td>
+            <td>No bundled files, smaller app size, seamless looping</td>
+        </tr>
+        <tr>
+            <td><strong>Vendored idle-time crate</strong></td>
+            <td>Original crate lacked Windows/macOS support</td>
+        </tr>
+        <tr>
+            <td><strong>Base64 for screenshots</strong></td>
+            <td>WebView security prevents direct file access</td>
+        </tr>
+        <tr>
+            <td><strong>Universal macOS binary</strong></td>
+            <td>Single binary supports Intel and Apple Silicon</td>
+        </tr>
+    </table>
+
+    <h3>Project Structure</h3>
+    <pre><code>MasteryTrack/
+├── masterytrack/
+│   ├── src/                      <span class="comment"># React frontend</span>
+│   │   ├── components/
+│   │   │   ├── TimerCard.tsx
+│   │   │   ├── ProgressRing.tsx
+│   │   │   ├── MusicPlayer.tsx
+│   │   │   └── ScreenshotGallery.tsx
+│   │   ├── utils/
+│   │   │   └── ambientSounds.ts
+│   │   ├── store.ts              <span class="comment"># Zustand state</span>
+│   │   └── App.tsx
+│   ├── src-tauri/                <span class="comment"># Rust backend</span>
+│   │   ├── src/
+│   │   │   ├── lib.rs            <span class="comment"># Tauri commands</span>
+│   │   │   ├── db.rs             <span class="comment"># Database</span>
+│   │   │   ├── timer.rs          <span class="comment"># Timer service</span>
+│   │   │   └── screenshot.rs     <span class="comment"># Screenshots</span>
+│   │   └── vendor/
+│   │       └── user-idle-time/   <span class="comment"># Platform idle detection</span>
+│   └── package.json
+├── .github/workflows/
+│   └── build-all-platforms.yml
+└── README.md</code></pre>
+</section>
+
+<div class="info-box">
+    <h3>Summary</h3>
+    <p>MasteryTrack is a cross-platform desktop application demonstrating modern hybrid app development. The entire application (~5,000 lines of code) was developed with <strong>Cursor AI</strong> as a pair programming assistant, showcasing the productivity gains possible with AI-assisted development.</p>
+</div>
+
+<div class="footer">
+    <p><strong>Created by Alpha Lencho</strong> • Built with Cursor AI • November 2025</p>
+    <p>GitHub: <a href="https://github.com/Alpha-Mintamir/MasteryTrack">github.com/Alpha-Mintamir/MasteryTrack</a></p>
+</div>
+
+</body>
+</html>
+
